@@ -1,0 +1,51 @@
+services:
+  # =====================
+  # PostgreSQL Database
+  # =====================
+  postgres:
+    image: postgres:16
+    container_name: nextmed-postgres
+    restart: unless-stopped
+    command: ["postgres", "-c", "port=5454"] # internal port
+    ports:
+      - "5454:5454"
+    environment:
+      POSTGRES_USER: nextmed_user
+      POSTGRES_PASSWORD: nextmed_pass
+      POSTGRES_DB: nextmed_db
+      TZ: Asia/Jakarta
+      PGTZ: Asia/Jakarta
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nextmed_user -d nextmed_db -p 5454"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # =====================
+  # Redis Cache
+  # =====================
+  redis:
+    image: redis:7-alpine
+    container_name: nextmed-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--port", "6464"]
+    ports:
+      - "6464:6464"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6464", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  default:
+    name: nextmed-stack
